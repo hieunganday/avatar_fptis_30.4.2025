@@ -2,93 +2,125 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Hòa bình của chúng minh - FPT IS</title>
+  <title>Hòa bình của chúng mình - FPT IS</title>
   <style>
-    body { text-align: center; font-family: Arial, sans-serif; }
-    #container { display: flex; justify-content: center; align-items: flex-start; margin-top: 20px; gap: 20px; }
-    #controls { margin-top: 10px; }
-    input[type=range] { width: 1080px; margin: 10px 0; }
-    canvas { border: 1px solid #ccc; background: white; }
-    #sample-avatar { max-width: 300px; }
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 1px solid lightgray;
+      margin-top: 20px;
+      width: 360px;
+      height: 360px;
+      object-fit: contain;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    input[type=range] {
+      width: 300px;
+    }
+    .preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .sample {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sample img {
+      max-width: 150px;
+      height: auto; /* giữ nguyên tỷ lệ, không bị méo */
+      border: 1px solid #ccc;
+    }
+    .sample-text {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
 
-<h2>Hòa bình của chúng minh - FPT IS</h2>
+  <h2>Hòa bình của chúng mình - FPT IS</h2>
 
-<input type="file" id="fileInput">
-<div id="controls">
-  <div>
-    <label>Zoom ảnh</label><br>
-    <input type="range" id="zoomSlider" min="0.5" max="2" value="1" step="0.01">
+  <input type="file" id="upload" accept="image/*"><br>
+
+  <div id="controls">
+    <label>Zoom ảnh<br><input type="range" id="zoom" min="0.5" max="2" step="0.01" value="1"></label><br><br>
+    <label>Di chuyển Trái/Phải<br><input type="range" id="moveX" min="-200" max="200" value="0"></label><br><br>
+    <label>Di chuyển Lên/Xuống<br><input type="range" id="moveY" min="-200" max="200" value="0"></label><br><br>
+    <button id="download">Ảnh đã xong - Tải về</button>
   </div>
-  <div>
-    <label>Di chuyển Trái/Phải</label><br>
-    <input type="range" id="moveXSlider" min="-540" max="540" value="0">
+
+  <div class="preview">
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+    <div class="sample">
+      <img src="mẫu.png" alt="Ảnh mẫu">
+      <div class="sample-text">Ảnh mẫu</div>
+    </div>
   </div>
-  <div>
-    <label>Di chuyển Lên/Xuống</label><br>
-    <input type="range" id="moveYSlider" min="-540" max="540" value="0">
-  </div>
-  <button onclick="downloadImage()">Ảnh đã xong - Tải về</button>
-</div>
 
-<div id="container">
-  <canvas id="canvas" width="1080" height="1080"></canvas>
-  <div>
-    <img id="sample-avatar" src="mẫu.png" alt="Avatar mẫu">
-  </div>
-</div>
+  <script>
+    const upload = document.getElementById('upload');
+    const zoom = document.getElementById('zoom');
+    const moveX = document.getElementById('moveX');
+    const moveY = document.getElementById('moveY');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const download = document.getElementById('download');
 
-<script>
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+    const frame = new Image();
+    frame.src = 'frame.png';
 
-  let uploadedImage = null;
-  let frameImage = new Image();
-  frameImage.src = 'frame.png';
-  frameImage.onload = draw;
+    let uploadedImage = null;
 
-  document.getElementById('fileInput').addEventListener('change', function(e) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      uploadedImage = new Image();
-      uploadedImage.onload = draw;
-      uploadedImage.src = event.target.result;
+    upload.addEventListener('change', function(e) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        uploadedImage = new Image();
+        uploadedImage.onload = drawCanvas;
+        uploadedImage.src = event.target.result;
+      }
+      reader.readAsDataURL(e.target.files[0]);
+    });
+
+    zoom.addEventListener('input', drawCanvas);
+    moveX.addEventListener('input', drawCanvas);
+    moveY.addEventListener('input', drawCanvas);
+
+    frame.onload = drawCanvas;
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (uploadedImage) {
+        const scale = parseFloat(zoom.value);
+        const x = parseFloat(moveX.value);
+        const y = parseFloat(moveY.value);
+
+        const imgWidth = uploadedImage.width * scale;
+        const imgHeight = uploadedImage.height * scale;
+
+        ctx.drawImage(uploadedImage, (canvas.width - imgWidth) / 2 + x, (canvas.height - imgHeight) / 2 + y, imgWidth, imgHeight);
+      }
+
+      ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
     }
-    reader.readAsDataURL(e.target.files[0]);
-  });
 
-  document.getElementById('zoomSlider').addEventListener('input', draw);
-  document.getElementById('moveXSlider').addEventListener('input', draw);
-  document.getElementById('moveYSlider').addEventListener('input', draw);
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (uploadedImage) {
-      const zoom = parseFloat(document.getElementById('zoomSlider').value);
-      const moveX = parseInt(document.getElementById('moveXSlider').value);
-      const moveY = parseInt(document.getElementById('moveYSlider').value);
-
-      const imgWidth = uploadedImage.width * zoom;
-      const imgHeight = uploadedImage.height * zoom;
-
-      ctx.drawImage(uploadedImage, (canvas.width - imgWidth) / 2 + moveX, (canvas.height - imgHeight) / 2 + moveY, imgWidth, imgHeight);
-    }
-
-    if (frameImage.complete) {
-      ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-    }
-  }
-
-  function downloadImage() {
-    const link = document.createElement('a');
-    link.download = 'avatar.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  }
-</script>
+    download.addEventListener('click', function() {
+      const link = document.createElement('a');
+      link.download = 'avatar-fptis.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  </script>
 
 </body>
 </html>
