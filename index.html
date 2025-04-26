@@ -34,7 +34,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none; /* để frame ko bị kéo */
+      pointer-events: none;
     }
     #inputImage {
       display: none;
@@ -74,6 +74,7 @@
 
 <input type="file" id="inputImage" accept="image/*">
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
   let uploadedImage = document.getElementById('uploaded-image');
   let inputImage = document.getElementById('inputImage');
@@ -146,33 +147,12 @@
   }
 
   function downloadAvatar() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1000;
-    canvas.height = 1000;
-    const ctx = canvas.getContext('2d');
-
-    const bg = new Image();
-    bg.src = uploadedImage.src;
-
-    const frame = new Image();
-    frame.src = document.getElementById('frame').src;
-
-    bg.onload = function () {
-      ctx.save();
-      ctx.translate(500 + pos.x * (1000/300), 500 + pos.y * (1000/300)); // căn giữa và thêm move
-      ctx.scale(scale, scale);
-      ctx.rotate(rotation * Math.PI / 180);
-      ctx.drawImage(bg, -500, -500, 1000, 1000);
-      ctx.restore();
-
-      frame.onload = function () {
-        ctx.drawImage(frame, 0, 0, 1000, 1000);
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = 'avatar.png';
-        link.click();
-      };
-    };
+    html2canvas(wrapper, { backgroundColor: null }).then(function(canvas) {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'avatar.png';
+      link.click();
+    });
   }
 </script>
 
