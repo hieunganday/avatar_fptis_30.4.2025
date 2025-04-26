@@ -16,17 +16,13 @@
       width: 300px;
       height: 300px;
       margin: 20px auto;
-      background: #ccc;
+      background-color: #ddd;
       overflow: hidden;
       border-radius: 10px;
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: center center;
       touch-action: none;
-    }
-    #uploaded-image {
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: center center;
-      cursor: move;
     }
     #frame {
       position: absolute;
@@ -62,13 +58,12 @@
 <p>Thay avatar ngay</p>
 
 <div class="avatar-wrapper" id="avatar-wrapper">
-  <img id="uploaded-image" draggable="false" />
   <img id="frame" src="frame.png" alt="Frame">
 </div>
 
 <div class="buttons">
   <button class="upload-btn" onclick="triggerUpload()">Upload Image</button>
-  <button class="rotate-btn" onclick="rotateImage()">Rotate</button>
+  <button class="rotate-btn" onclick="rotateBackground()">Rotate</button>
   <button class="download-btn" onclick="downloadAvatar()">Download Avatar</button>
 </div>
 
@@ -76,15 +71,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-  let uploadedImage = document.getElementById('uploaded-image');
-  let inputImage = document.getElementById('inputImage');
-  let wrapper = document.getElementById('avatar-wrapper');
+  const wrapper = document.getElementById('avatar-wrapper');
+  const inputImage = document.getElementById('inputImage');
 
-  let scale = 1;
+  let bgPos = { x: 50, y: 50 }; // Center
+  let bgSize = 100; // 100% contain
   let rotation = 0;
-  let pos = { x: 0, y: 0 };
-  let start = { x: 0, y: 0 };
-  let isDragging = false;
+  let imageURL = '';
 
   function triggerUpload() {
     inputImage.click();
@@ -96,19 +89,36 @@
 
     const reader = new FileReader();
     reader.onload = function (e) {
-      uploadedImage.src = e.target.result;
-      uploadedImage.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)';
-      pos = { x: 0, y: 0 };
-      scale = 1;
-      rotation = 0;
+      imageURL = e.target.result;
+      wrapper.style.backgroundImage = `url(${imageURL})`;
+      resetBackground();
     };
     reader.readAsDataURL(file);
   });
 
+  function resetBackground() {
+    bgPos = { x: 50, y: 50 };
+    bgSize = 100;
+    rotation = 0;
+    updateBackground();
+  }
+
+  wrapper.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      bgSize += 5;
+    } else {
+      bgSize = Math.max(10, bgSize - 5);
+    }
+    updateBackground();
+  });
+
+  let isDragging = false;
+  let start = { x: 0, y: 0 };
+
   wrapper.addEventListener('mousedown', function (e) {
     isDragging = true;
-    start.x = e.clientX - pos.x;
-    start.y = e.clientY - pos.y;
+    start = { x: e.clientX, y: e.clientY };
   });
 
   wrapper.addEventListener('mouseup', function () {
@@ -120,34 +130,30 @@
   });
 
   wrapper.addEventListener('mousemove', function (e) {
-    if (isDragging) {
-      pos.x = e.clientX - start.x;
-      pos.y = e.clientY - start.y;
-      updateTransform();
-    }
+    if (!isDragging) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    start = { x: e.clientX, y: e.clientY };
+    bgPos.x += dx / 3; // Adjust speed
+    bgPos.y += dy / 3;
+    updateBackground();
   });
 
-  wrapper.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    if (e.deltaY < 0) {
-      scale += 0.05;
-    } else {
-      scale = Math.max(0.1, scale - 0.05);
-    }
-    updateTransform();
-  });
-
-  function rotateImage() {
+  function rotateBackground() {
     rotation += 45;
-    updateTransform();
+    updateBackground();
   }
 
-  function updateTransform() {
-    uploadedImage.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${scale}) rotate(${rotation}deg)`;
+  function updateBackground() {
+    wrapper.style.backgroundSize = `${bgSize}%`;
+    wrapper.style.backgroundPosition = `${bgPos.x}% ${bgPos.y}%`;
+    wrapper.style.backgroundRepeat = 'no-repeat';
+    wrapper.style.backgroundImage = `url(${imageURL})`;
+    wrapper.style.transform = `rotate(${rotation}deg)`;
   }
 
   function downloadAvatar() {
-    html2canvas(wrapper, { backgroundColor: null }).then(function(canvas) {
+    html2canvas(wrapper, { backgroundColor: null }).then(function (canvas) {
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');
       link.download = 'avatar.png';
