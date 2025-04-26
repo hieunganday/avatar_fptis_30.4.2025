@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hòa bình của chúng minh - FPT IS</title>
+  <style>
+    body { text-align: center; font-family: Arial, sans-serif; }
+    #container { display: flex; justify-content: center; align-items: flex-start; margin-top: 20px; gap: 20px; }
+    #controls { margin-top: 10px; }
+    input[type=range] { width: 1080px; margin: 10px 0; }
+    canvas { border: 1px solid #ccc; background: white; }
+    #sample-avatar { max-width: 300px; }
+  </style>
+</head>
+<body>
+
+<h2>Hòa bình của chúng minh - FPT IS</h2>
+
+<input type="file" id="fileInput">
+<div id="controls">
+  <div>
+    <label>Zoom ảnh</label><br>
+    <input type="range" id="zoomSlider" min="0.5" max="2" value="1" step="0.01">
+  </div>
+  <div>
+    <label>Di chuyển Trái/Phải</label><br>
+    <input type="range" id="moveXSlider" min="-540" max="540" value="0">
+  </div>
+  <div>
+    <label>Di chuyển Lên/Xuống</label><br>
+    <input type="range" id="moveYSlider" min="-540" max="540" value="0">
+  </div>
+  <button onclick="downloadImage()">Ảnh đã xong - Tải về</button>
+</div>
+
+<div id="container">
+  <canvas id="canvas" width="1080" height="1080"></canvas>
+  <div>
+    <img id="sample-avatar" src="mẫu.png" alt="Avatar mẫu">
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  let uploadedImage = null;
+  let frameImage = new Image();
+  frameImage.src = 'frame.png';
+  frameImage.onload = draw;
+
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      uploadedImage = new Image();
+      uploadedImage.onload = draw;
+      uploadedImage.src = event.target.result;
+    }
+    reader.readAsDataURL(e.target.files[0]);
+  });
+
+  document.getElementById('zoomSlider').addEventListener('input', draw);
+  document.getElementById('moveXSlider').addEventListener('input', draw);
+  document.getElementById('moveYSlider').addEventListener('input', draw);
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (uploadedImage) {
+      const zoom = parseFloat(document.getElementById('zoomSlider').value);
+      const moveX = parseInt(document.getElementById('moveXSlider').value);
+      const moveY = parseInt(document.getElementById('moveYSlider').value);
+
+      const imgWidth = uploadedImage.width * zoom;
+      const imgHeight = uploadedImage.height * zoom;
+
+      ctx.drawImage(uploadedImage, (canvas.width - imgWidth) / 2 + moveX, (canvas.height - imgHeight) / 2 + moveY, imgWidth, imgHeight);
+    }
+
+    if (frameImage.complete) {
+      ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  function downloadImage() {
+    const link = document.createElement('a');
+    link.download = 'avatar.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+</script>
+
+</body>
+</html>
