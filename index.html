@@ -1,246 +1,154 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hòa bình của chúng mình - FPT IS</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background: #f0f0f0;
-        }
-        h1 {
-            margin-bottom: 5px;
-        }
-        p {
-            margin-bottom: 20px;
-        }
-        #preview-container {
-            position: relative;
-            width: 400px;
-            height: 400px;
-            margin: 0 auto;
-            background: #fff;
-            border: 2px solid #ccc;
-            overflow: hidden;
-            touch-action: none;
-        }
-        canvas {
-            width: 100%;
-            height: 100%;
-            background: #ddd;
-        }
-        #controls {
-            margin-top: 10px;
-        }
-        #controls input[type="range"] {
-            width: 400px;
-        }
-        #buttons {
-            margin-top: 15px;
-        }
-        #buttons button {
-            margin: 5px;
-            padding: 10px 15px;
-            font-size: 16px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>50 năm hòa bình của chúng mình - FPT IS</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+    .avatar-wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 20px auto;
+      background: #ccc;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+    .avatar-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+    #frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* để chuột ko tác động vào frame */
+    }
+    #inputImage {
+      display: none; /* Ẩn nút Choose File */
+    }
+    .buttons {
+      margin-top: 20px;
+    }
+    .buttons button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      color: white;
+    }
+    .upload-btn { background-color: orange; }
+    .rotate-btn { background-color: green; }
+    .download-btn { background-color: dodgerblue; }
+  </style>
 </head>
 <body>
 
-    <h1>Hòa bình của chúng mình - FPT IS</h1>
-    <p>Thay ava ngay</p>
+<h2>50 năm hòa bình của chúng mình - FPT IS</h2>
+<p>Thay avatar ngay</p>
 
-    <div id="preview-container">
-        <canvas id="preview" width="1200" height="1200"></canvas>
-    </div>
+<div class="avatar-wrapper">
+  <img id="uploaded-image" style="max-width: 100%; display: none;">
+  <img id="frame" src="frame.png" alt="Frame">
+</div>
 
-    <div id="controls">
-        <input type="range" id="rotate-slider" min="-180" max="180" value="0">
-    </div>
+<div class="buttons">
+  <button class="upload-btn" onclick="triggerUpload()">Upload Image</button>
+  <button class="rotate-btn" onclick="rotateImage()">Rotate</button>
+  <button class="download-btn" onclick="downloadAvatar()">Download Avatar</button>
+</div>
 
-    <div id="buttons">
-        <button id="upload-frame-btn">Upload Frame</button>
-        <button id="upload-avatar-btn">Upload Avatar</button>
-        <button id="download-btn">Download Avatar</button>
-    </div>
+<input type="file" id="inputImage" accept="image/*">
 
-    <input type="file" id="frame-input" accept="image/*" style="display: none;">
-    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+  let cropper;
+  const uploadedImage = document.getElementById('uploaded-image');
+  const inputImage = document.getElementById('inputImage');
 
-    <script>
-        const canvas = document.getElementById('preview');
-        const ctx = canvas.getContext('2d');
-        const rotateSlider = document.getElementById('rotate-slider');
-        const uploadFrameBtn = document.getElementById('upload-frame-btn');
-        const uploadAvatarBtn = document.getElementById('upload-avatar-btn');
-        const downloadBtn = document.getElementById('download-btn');
-        const frameInput = document.getElementById('frame-input');
-        const avatarInput = document.getElementById('avatar-input');
+  function triggerUpload() {
+    inputImage.click();
+  }
 
-        const canvasWidth = 1200; // chuẩn HD
-        const canvasHeight = 1200;
+  inputImage.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
 
-        let frameImage = new Image();
-        let avatarImage = new Image();
-        let avatarLoaded = false;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      uploadedImage.src = e.target.result;
+      uploadedImage.style.display = 'block';
 
-        let avatar = {
-            x: canvasWidth / 2,
-            y: canvasHeight / 2,
-            scale: 1,
-            rotation: 0,
-            dragging: false,
-            offsetX: 0,
-            offsetY: 0
-        };
+      if (cropper) {
+        cropper.destroy();
+      }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cropper = new Cropper(uploadedImage, {
+        aspectRatio: 1,
+        viewMode: 1,
+        background: false,
+        guides: false,     // Tắt khung crop xanh xanh
+        center: true,
+        highlight: false,
+        cropBoxMovable: false,
+        cropBoxResizable: false,
+        dragMode: 'move',   // Chỉ cho phép move ảnh, không crop
+        movable: true,
+        zoomable: true,
+        rotatable: true,
+        scalable: false,
+      });
+    };
+    reader.readAsDataURL(file);
+  });
 
-            if (avatarLoaded) {
-                ctx.save();
-                ctx.translate(avatar.x, avatar.y);
-                ctx.rotate(avatar.rotation * Math.PI / 180);
-                ctx.scale(avatar.scale, avatar.scale);
-                const imgW = avatarImage.width;
-                const imgH = avatarImage.height;
-                ctx.drawImage(avatarImage, -imgW/2, -imgH/2);
-                ctx.restore();
-            }
+  function rotateImage() {
+    if (cropper) {
+      cropper.rotate(45);
+    }
+  }
 
-            if (frameImage.src) {
-                ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-            }
-        }
+  function downloadAvatar() {
+    if (!cropper) return;
 
-        uploadFrameBtn.addEventListener('click', () => {
-            frameInput.click();
-        });
+    const canvas = cropper.getCroppedCanvas({
+      width: 1000,
+      height: 1000,
+    });
 
-        frameInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const url = URL.createObjectURL(file);
-                frameImage.src = url;
-                frameImage.onload = draw;
-            }
-        });
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = 1000;
+    finalCanvas.height = 1000;
+    const ctx = finalCanvas.getContext('2d');
 
-        uploadAvatarBtn.addEventListener('click', () => {
-            avatarInput.click();
-        });
+    // Vẽ ảnh đã crop
+    ctx.drawImage(canvas, 0, 0);
 
-        avatarInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const url = URL.createObjectURL(file);
-                avatarImage.src = url;
-                avatarImage.onload = () => {
-                    avatarLoaded = true;
-                    draw();
-                };
-            }
-        });
+    // Sau đó vẽ frame đè lên
+    const frame = new Image();
+    frame.src = 'frame.png';
+    frame.onload = function () {
+      ctx.drawImage(frame, 0, 0, 1000, 1000);
 
-        rotateSlider.addEventListener('input', (e) => {
-            avatar.rotation = parseFloat(e.target.value);
-            draw();
-        });
+      const link = document.createElement('a');
+      link.href = finalCanvas.toDataURL('image/png');
+      link.download = 'avatar.png';
+      link.click();
+    }
+  }
+</script>
 
-        downloadBtn.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = 'avatar_hd.png';
-            link.href = canvas.toDataURL('image/png', 1.0); // chất lượng PNG full
-            link.click();
-        });
-
-        // Dragging
-        canvas.addEventListener('mousedown', (e) => {
-            avatar.dragging = true;
-            const rect = canvas.getBoundingClientRect();
-            avatar.offsetX = (e.clientX - rect.left) * (canvas.width / rect.width) - avatar.x;
-            avatar.offsetY = (e.clientY - rect.top) * (canvas.height / rect.height) - avatar.y;
-        });
-
-        canvas.addEventListener('mouseup', () => {
-            avatar.dragging = false;
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            avatar.dragging = false;
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            if (avatar.dragging) {
-                const rect = canvas.getBoundingClientRect();
-                avatar.x = (e.clientX - rect.left) * (canvas.width / rect.width) - avatar.offsetX;
-                avatar.y = (e.clientY - rect.top) * (canvas.height / rect.height) - avatar.offsetY;
-                draw();
-            }
-        });
-
-        // Zoom with mouse wheel
-        canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const scaleAmount = e.deltaY * -0.001;
-            avatar.scale += scaleAmount;
-            avatar.scale = Math.min(Math.max(avatar.scale, 0.1), 5);
-            draw();
-        });
-
-        // Zoom and move with touch gestures
-        let lastTouchDist = null;
-        let lastTouchPos = null;
-
-        canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length == 2) {
-                lastTouchDist = getTouchDist(e.touches);
-            } else if (e.touches.length == 1) {
-                const rect = canvas.getBoundingClientRect();
-                lastTouchPos = {
-                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
-                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
-                };
-            }
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            if (e.touches.length == 2) {
-                const dist = getTouchDist(e.touches);
-                const scaleChange = dist / lastTouchDist;
-                avatar.scale *= scaleChange;
-                avatar.scale = Math.min(Math.max(avatar.scale, 0.1), 5);
-                lastTouchDist = dist;
-            } else if (e.touches.length == 1 && lastTouchPos) {
-                const newPos = {
-                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
-                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
-                };
-                avatar.x += newPos.x - lastTouchPos.x;
-                avatar.y += newPos.y - lastTouchPos.y;
-                lastTouchPos = newPos;
-            }
-            draw();
-        });
-
-        canvas.addEventListener('touchend', () => {
-            lastTouchDist = null;
-            lastTouchPos = null;
-        });
-
-        function getTouchDist(touches) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // Initial draw
-        draw();
-    </script>
 </body>
 </html>
