@@ -1,115 +1,246 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Hòa bình của chúng mình - FPT IS</title>
-  <style>
-    body {
-      text-align: center;
-      font-family: Arial, sans-serif;
-    }
-    #canvas {
-      border: 1px solid #ccc;
-      margin-top: 20px;
-      max-width: 90%;
-    }
-    #controls {
-      margin: 20px 0;
-    }
-    #resultImageContainer img {
-      margin-top: 20px;
-      max-width: 90%;
-      border: 2px solid #ccc;
-      border-radius: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hòa bình của chúng mình - FPT IS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        h1 {
+            margin-bottom: 5px;
+        }
+        p {
+            margin-bottom: 20px;
+        }
+        #preview-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            background: #fff;
+            border: 2px solid #ccc;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            background: #ddd;
+        }
+        #controls {
+            margin-top: 10px;
+        }
+        #controls input[type="range"] {
+            width: 400px;
+        }
+        #buttons {
+            margin-top: 15px;
+        }
+        #buttons button {
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Hòa bình của chúng mình - FPT IS</h1>
-  
-  <input type="file" id="upload" accept="image/*"><br><br>
-  
-  <div id="controls">
-    <div>
-      <label>Zoom ảnh</label><br>
-      <input type="range" id="scale" min="0.5" max="2" step="0.01" value="1">
+
+    <h1>Hòa bình của chúng mình - FPT IS</h1>
+    <p>Thay ava ngay</p>
+
+    <div id="preview-container">
+        <canvas id="preview" width="1200" height="1200"></canvas>
     </div>
-    <div>
-      <label>Di chuyển Trái/Phải</label><br>
-      <input type="range" id="moveX" min="-200" max="200" step="1" value="0">
+
+    <div id="controls">
+        <input type="range" id="rotate-slider" min="-180" max="180" value="0">
     </div>
-    <div>
-      <label>Di chuyển Lên/Xuống</label><br>
-      <input type="range" id="moveY" min="-200" max="200" step="1" value="0">
+
+    <div id="buttons">
+        <button id="upload-frame-btn">Upload Frame</button>
+        <button id="upload-avatar-btn">Upload Avatar</button>
+        <button id="download-btn">Download Avatar</button>
     </div>
-    <button id="download">Ảnh đã xong - Tải về</button>
-  </div>
 
-  <canvas id="canvas" width="800" height="800"></canvas>
+    <input type="file" id="frame-input" accept="image/*" style="display: none;">
+    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
 
-  <div id="resultImageContainer"></div>
+    <script>
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+        const rotateSlider = document.getElementById('rotate-slider');
+        const uploadFrameBtn = document.getElementById('upload-frame-btn');
+        const uploadAvatarBtn = document.getElementById('upload-avatar-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const frameInput = document.getElementById('frame-input');
+        const avatarInput = document.getElementById('avatar-input');
 
-  <h3>Ảnh mẫu:</h3>
-  <img src="mẫu.png" alt="Ảnh mẫu" style="width:200px; border: 1px solid #ccc;">
+        const canvasWidth = 1200; // chuẩn HD
+        const canvasHeight = 1200;
 
-  <script>
-    const upload = document.getElementById('upload');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const scaleInput = document.getElementById('scale');
-    const moveXInput = document.getElementById('moveX');
-    const moveYInput = document.getElementById('moveY');
-    let uploadedImage = null;
-    let frame = new Image();
-    frame.src = 'frame.png'; // frame bạn cung cấp
+        let frameImage = new Image();
+        let avatarImage = new Image();
+        let avatarLoaded = false;
 
-    upload.addEventListener('change', function(e) {
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        uploadedImage = new Image();
-        uploadedImage.onload = draw;
-        uploadedImage.src = event.target.result;
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    });
+        let avatar = {
+            x: canvasWidth / 2,
+            y: canvasHeight / 2,
+            scale: 1,
+            rotation: 0,
+            dragging: false,
+            offsetX: 0,
+            offsetY: 0
+        };
 
-    scaleInput.addEventListener('input', draw);
-    moveXInput.addEventListener('input', draw);
-    moveYInput.addEventListener('input', draw);
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function draw() {
-      if (!uploadedImage) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (avatarLoaded) {
+                ctx.save();
+                ctx.translate(avatar.x, avatar.y);
+                ctx.rotate(avatar.rotation * Math.PI / 180);
+                ctx.scale(avatar.scale, avatar.scale);
+                const imgW = avatarImage.width;
+                const imgH = avatarImage.height;
+                ctx.drawImage(avatarImage, -imgW/2, -imgH/2);
+                ctx.restore();
+            }
 
-      const scale = parseFloat(scaleInput.value);
-      const moveX = parseInt(moveXInput.value);
-      const moveY = parseInt(moveYInput.value);
+            if (frameImage.src) {
+                ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+            }
+        }
 
-      const imgWidth = uploadedImage.width * scale;
-      const imgHeight = uploadedImage.height * scale;
+        uploadFrameBtn.addEventListener('click', () => {
+            frameInput.click();
+        });
 
-      ctx.drawImage(
-        uploadedImage,
-        canvas.width / 2 - imgWidth / 2 + moveX,
-        canvas.height / 2 - imgHeight / 2 + moveY,
-        imgWidth,
-        imgHeight
-      );
+        frameInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                frameImage.src = url;
+                frameImage.onload = draw;
+            }
+        });
 
-      ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-    }
+        uploadAvatarBtn.addEventListener('click', () => {
+            avatarInput.click();
+        });
 
-    document.getElementById('download').addEventListener('click', function() {
-      const dataUrl = canvas.toDataURL('image/png');
+        avatarInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                avatarImage.src = url;
+                avatarImage.onload = () => {
+                    avatarLoaded = true;
+                    draw();
+                };
+            }
+        });
 
-      // Hiển thị ảnh ra thay vì tải thẳng
-      const resultContainer = document.getElementById('resultImageContainer');
-      resultContainer.innerHTML = '<p>👉 Nhấn giữ vào ảnh bên dưới và chọn "Lưu vào Ảnh" để lưu!</p>';
+        rotateSlider.addEventListener('input', (e) => {
+            avatar.rotation = parseFloat(e.target.value);
+            draw();
+        });
 
-      const img = new Image();
-      img.src = dataUrl;
-      resultContainer.appendChild(img);
-    });
-  </script>
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'avatar_hd.png';
+            link.href = canvas.toDataURL('image/png', 1.0); // chất lượng PNG full
+            link.click();
+        });
+
+        // Dragging
+        canvas.addEventListener('mousedown', (e) => {
+            avatar.dragging = true;
+            const rect = canvas.getBoundingClientRect();
+            avatar.offsetX = (e.clientX - rect.left) * (canvas.width / rect.width) - avatar.x;
+            avatar.offsetY = (e.clientY - rect.top) * (canvas.height / rect.height) - avatar.y;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            avatar.dragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            avatar.dragging = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (avatar.dragging) {
+                const rect = canvas.getBoundingClientRect();
+                avatar.x = (e.clientX - rect.left) * (canvas.width / rect.width) - avatar.offsetX;
+                avatar.y = (e.clientY - rect.top) * (canvas.height / rect.height) - avatar.offsetY;
+                draw();
+            }
+        });
+
+        // Zoom with mouse wheel
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = e.deltaY * -0.001;
+            avatar.scale += scaleAmount;
+            avatar.scale = Math.min(Math.max(avatar.scale, 0.1), 5);
+            draw();
+        });
+
+        // Zoom and move with touch gestures
+        let lastTouchDist = null;
+        let lastTouchPos = null;
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length == 2) {
+                lastTouchDist = getTouchDist(e.touches);
+            } else if (e.touches.length == 1) {
+                const rect = canvas.getBoundingClientRect();
+                lastTouchPos = {
+                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length == 2) {
+                const dist = getTouchDist(e.touches);
+                const scaleChange = dist / lastTouchDist;
+                avatar.scale *= scaleChange;
+                avatar.scale = Math.min(Math.max(avatar.scale, 0.1), 5);
+                lastTouchDist = dist;
+            } else if (e.touches.length == 1 && lastTouchPos) {
+                const newPos = {
+                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+                };
+                avatar.x += newPos.x - lastTouchPos.x;
+                avatar.y += newPos.y - lastTouchPos.y;
+                lastTouchPos = newPos;
+            }
+            draw();
+        });
+
+        canvas.addEventListener('touchend', () => {
+            lastTouchDist = null;
+            lastTouchPos = null;
+        });
+
+        function getTouchDist(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Initial draw
+        draw();
+    </script>
 </body>
 </html>
