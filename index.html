@@ -144,8 +144,8 @@
     updateBackground();
   }
 
-  function updateBackground() {
-    wrapper.style.backgroundSize = `${bgSize}%`;
+function updateBackground() {
+    wrapper.style.backgroundSize = 'cover'; // <<< sửa dòng này
     wrapper.style.backgroundPosition = `${bgPos.x}% ${bgPos.y}%`;
     wrapper.style.backgroundRepeat = 'no-repeat';
     wrapper.style.backgroundImage = `url(${imageURL})`;
