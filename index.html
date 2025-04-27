@@ -12,7 +12,7 @@
     #canvas {
       border: 1px solid #ccc;
       margin: 20px 0;
-      touch-action: none; /* Cho phép thao tác 2 ngón trên mobile */
+      touch-action: none;
     }
     #rotateSlider {
       width: 800px;
@@ -36,6 +36,18 @@
     #download {
       background-color: #007bff; /* Xanh dương */
     }
+    #result img {
+      margin-top: 20px;
+      width: 300px;
+      height: auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    #instruction {
+      font-size: 14px;
+      color: gray;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -52,9 +64,12 @@
     <label for="fileInput">
       <button id="upload">Upload Image</button>
     </label>
-    <button id="download">Download Avatar</button>
+    <button id="download">Tải Avatar</button>
     <input type="file" id="fileInput" accept="image/*" style="display: none;">
   </div>
+
+  <div id="result"></div>
+  <div id="instruction"></div>
 
   <script>
     const canvas = document.getElementById('canvas');
@@ -63,9 +78,11 @@
     const fileInput = document.getElementById('fileInput');
     const uploadBtn = document.getElementById('upload');
     const downloadBtn = document.getElementById('download');
+    const resultDiv = document.getElementById('result');
+    const instructionDiv = document.getElementById('instruction');
 
     let frame = new Image();
-    frame.src = 'frame.png'; // Frame cố định
+    frame.src = 'frame.png';
 
     let uploadedImage = null;
     let scale = 1;
@@ -95,10 +112,12 @@
     downloadBtn.addEventListener('click', function() {
       const dataUrl = canvas.toDataURL('image/png');
 
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = 'avatar-fptis.png';
-      link.click();
+      // Hiển thị ảnh kết quả ngay dưới
+      resultDiv.innerHTML = `<img src="${dataUrl}" alt="Avatar">`;
+      instructionDiv.innerHTML = "📱 Nhấn giữ vào ảnh trên để lưu vào Album Ảnh";
+
+      // Scroll xuống kết quả cho dễ thấy
+      resultDiv.scrollIntoView({ behavior: 'smooth' });
     });
 
     rotateSlider.addEventListener('input', function() {
@@ -203,7 +222,6 @@
       }
       ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
     }
-
   </script>
 </body>
 </html>
